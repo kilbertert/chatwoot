@@ -33,6 +33,16 @@ RSpec.describe Webhooks::WecomEventsJob do
       perform_job(trigger_bot_handoff: true)
       expect(conv.reload.status).to eq('open')
     end
+
+    it 'does not trigger handoff for resolved conversations' do
+      contact_inbox = create(:contact_inbox, inbox: inbox, contact: create(:contact, account: account), source_id: 'wm_test')
+      conv = create(:conversation, account: account, inbox: inbox, contact: contact_inbox.contact, contact_inbox: contact_inbox, status: :resolved)
+
+      expect(Wecom::IncomingMessageService).not_to receive(:new)
+
+      perform_job(trigger_bot_handoff: true)
+      expect(conv.reload.status).to eq('resolved')
+    end
   end
 
   context 'when HMAC signature invalid' do

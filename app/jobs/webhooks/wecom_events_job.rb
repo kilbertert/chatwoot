@@ -26,7 +26,8 @@ class Webhooks::WecomEventsJob < ApplicationJob
     contact_inbox = @channel.inbox.contact_inboxes.find_by(source_id: @params[:external_userid])
     return unless contact_inbox
 
-    conversation = contact_inbox.conversations.last
+    # E5: 跳过 resolved 会话 (已解决这轮不再触发 handoff)
+    conversation = contact_inbox.conversations.where.not(status: :resolved).last
     return unless conversation
 
     conversation.bot_handoff!  # 触发 CONVERSATION_BOT_HANDOFF dispatcher 事件

@@ -55,5 +55,31 @@ RSpec.describe Wecom::HandoffQueryService do
         expect(result[:assignee_id]).to eq(agent.id)
       end
     end
+
+    context 'when only a resolved conversation exists (E5)' do
+      it 'skips resolved and returns no_conversation (handoff:false, AI 接管)' do
+        # 已解决会话有人工 assignee 且在线, 但因 resolved 应被跳过
+        create(:conversation, account: account, inbox: inbox, contact: contact,
+                              contact_inbox: contact_inbox, assignee: agent, status: :resolved)
+        allow(OnlineStatusTracker).to receive(:get_available_user_ids).with(account.id).and_return([agent.id])
+
+        result = described_class.new(open_kfid: 'wk_test_handoff', external_userid: 'wm_user_test').perform
+        expect(result).to eq(handoff: false, reason: 'no_conversation')
+      end
+    end
+
+    context 'when a resolved and an open conversation both exist (E5)' do
+      it 'uses the open one, not the resolved one' do
+        # 旧 resolved 会话 (有 assignee), 新 open 会话 (unassigned) → 应用 open 那条
+        create(:conversation, account: account, inbox: inbox, contact: contact,
+                              contact_inbox: contact_inbox, assignee: agent, status: :resolved)
+        create(:conversation, account: account, inbox: inbox, contact: contact,
+                              contact_inbox: contact_inbox, assignee: nil, status: :open)
+
+        result = described_class.new(open_kfid: 'wk_test_handoff', external_userid: 'wm_user_test').perform
+        # open 会话 unassigned → handoff:false, unassigned (而非 resolved 的 agent_online)
+        expect(result).to eq(handoff: false, reason: 'unassigned')
+      end
+    end
   end
 end

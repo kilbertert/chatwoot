@@ -48,5 +48,16 @@ RSpec.describe 'WeCom handoff status', type: :request do
         expect(response.parsed_body).to include('error' => 'invalid signature')
       end
     end
+
+    context 'when account is suspended' do
+      it 'returns unauthorized' do
+        account.update!(status: :suspended)
+
+        get_handoff_status
+
+        expect(response).to have_http_status(:unauthorized)
+        expect(response.parsed_body).to include('error' => 'invalid signature')
+      end
+    end
   end
 end

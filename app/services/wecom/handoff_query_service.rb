@@ -20,7 +20,9 @@ class Wecom::HandoffQueryService
     contact_inbox = inbox.contact_inboxes.find_by(source_id: external_userid)
     return { handoff: false, reason: 'no_conversation' } if contact_inbox.nil?
 
-    conversation = contact_inbox.conversations.last
+    # E5: 跳过 resolved 会话 —— 已解决这轮不再查 handoff (返回 no_conversation
+    # 让 wecom-ai 走 AI; 客户再来时 incoming 会开新会话)。
+    conversation = contact_inbox.conversations.where.not(status: :resolved).last
     return { handoff: false, reason: 'no_conversation' } if conversation.nil?
     return { handoff: false, reason: 'unassigned' } if conversation.assignee_id.blank?
 

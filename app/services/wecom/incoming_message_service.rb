@@ -44,11 +44,10 @@ class Wecom::IncomingMessageService
   end
 
   def set_conversation
-    @conversation = if @inbox.lock_to_single_conversation?
-                      @contact_inbox.conversations.last
-                    else
-                      @contact_inbox.conversations.where.not(status: :resolved).last
-                    end
+    # E5: 已解决(resolved)会话不再复用 —— 跳过 resolved, 找最近的活跃会话;
+    # 没有则新建。wecom lock_to_single_conversation? 语义为"同一时刻只有一个
+    # 活跃会话", 而非"永远复用首个会话"。resolved 后客户再来 = 新一轮, 开新会话。
+    @conversation = @contact_inbox.conversations.where.not(status: :resolved).last
     return if @conversation
 
     @conversation = ::Conversation.create!(

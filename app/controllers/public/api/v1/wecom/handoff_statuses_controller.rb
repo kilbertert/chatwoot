@@ -46,6 +46,7 @@ class Public::Api::V1::Wecom::HandoffStatusesController < PublicController
 
     channel = Channel::Wecom.find_by(open_kfid: params[:open_kfid])
     return false if channel.nil? || channel.wecom_ai_secret.blank?
+    return false if channel.account_id.nil? || !channel.account&.active?
 
     expected = OpenSSL::HMAC.hexdigest(
       OpenSSL::Digest.new('SHA256'), channel.wecom_ai_secret, request.query_string

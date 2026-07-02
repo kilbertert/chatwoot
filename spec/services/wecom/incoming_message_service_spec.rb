@@ -97,4 +97,24 @@ RSpec.describe Wecom::IncomingMessageService do
       expect { service.perform }.not_to change { Message.count }
     end
   end
+
+  describe '#perform skips resolved conversation (E5)' do
+    before do
+      contact = create(:contact, account: account)
+      ci = create(:contact_inbox, inbox: inbox, contact: contact, source_id: external_userid)
+      @resolved_conv = create(:conversation, account: account, inbox: inbox,
+                              contact: contact, contact_inbox: ci, status: :resolved)
+    end
+
+    it 'opens a NEW conversation instead of appending to the resolved one' do
+      service = described_class.new(inbox: inbox, params: build_params(origin: 1).with_indifferent_access)
+      service.perform
+
+      m = Message.find_by(source_id: msg_id)
+      expect(m).not_to be_nil
+      expect(m.conversation_id).not_to eq(@resolved_conv.id)
+      expect(m.conversation.status).to eq('open')
+      expect(@resolved_conv.reload.status).to eq('resolved') # 旧会话保持 resolved, 未被 reopen
+    end
+  end
 end
