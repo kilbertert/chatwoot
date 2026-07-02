@@ -450,6 +450,39 @@
           "ERROR_MESSAGE": "We were not able to save the telegram channel"
         }
       },
+      "WECOM_CHANNEL": {
+        "TITLE": "WeCom Channel",
+        "DESC": "Integrate with a WeCom AI backend (企业微信客服) and start supporting your customers.",
+        "CHANNEL_NAME": {
+          "LABEL": "Channel Name",
+          "SUBTITLE": "A friendly name to identify this inbox in your dashboard.",
+          "PLACEHOLDER": "WeCom Inbox"
+        },
+        "CORP_ID": {
+          "LABEL": "Corp ID",
+          "SUBTITLE": "Your WeCom Corporation ID (企业 ID).",
+          "PLACEHOLDER": "ww1234567890abcdef"
+        },
+        "OPEN_KFID": {
+          "LABEL": "Open KFID (WeCom KF Account ID)",
+          "SUBTITLE": "The WeCom Customer Service account ID this inbox handles.",
+          "PLACEHOLDER": "wkAbCdEf123456"
+        },
+        "AI_SERVICE_URL": {
+          "LABEL": "AI Backend Service URL",
+          "SUBTITLE": "URL of your wecom-ai-service. Chatwoot will POST outgoing agent messages here.",
+          "PLACEHOLDER": "http://your-wecom-ai-host:8000"
+        },
+        "AI_SECRET": {
+          "LABEL": "AI Backend HMAC Secret",
+          "SUBTITLE": "Shared HMAC-SHA256 secret (header X-WecomAI-Signature).",
+          "PLACEHOLDER": "long-random-secret"
+        },
+        "SUBMIT_BUTTON": "Create WeCom Channel",
+        "API": {
+          "ERROR_MESSAGE": "We were not able to save the WeCom channel"
+        }
+      },
       "AUTH": {
         "TITLE": "Choose a channel",
         "DESC": "Chatwoot supports live-chat widgets, Facebook Messenger, WhatsApp, Emails, etc., as channels. If you want to build a custom channel, you can create it using the API channel. To get started, choose one of the channels below.",
@@ -495,6 +528,10 @@
           "INSTAGRAM": {
             "TITLE": "Instagram",
             "DESCRIPTION": "Connect your instagram account"
+          },
+          "WECOM": {
+            "TITLE": "WeCom (企业微信)",
+            "DESCRIPTION": "Connect to your WeCom AI backend (real-time messaging, AI auto-reply, agent handoff)"
           },
           "TIKTOK": {
             "TITLE": "TikTok",
@@ -1197,6 +1234,7 @@
       "SMS": "SMS",
       "EMAIL": "Email",
       "TELEGRAM": "Telegram",
+      "WECOM": "WeCom (企业微信)",
       "LINE": "Line",
       "API": "API Channel",
       "INSTAGRAM": "Instagram",

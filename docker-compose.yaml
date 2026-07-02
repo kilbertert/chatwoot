@@ -86,13 +86,19 @@ services:
     image: pgvector/pgvector:pg16
     restart: always
     ports:
-      - '5432:5432'
+      # Bind to localhost only. Do not expose trust-auth Postgres to the public internet.
+      - '127.0.0.1:5432:5432'
     volumes:
-      - postgres:/data/postgres
+      # pgvector/postgres uses /var/lib/postgresql/data as PGDATA. Mounting elsewhere
+      # creates an anonymous PGDATA volume and prevents init scripts from reliably running.
+      - postgres:/var/lib/postgresql/data
+      # Fix: pgvector:pg16 默认 postgres NOLOGIN, init 时强制 LOGIN SUPERUSER + 建业务库
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     environment:
       - POSTGRES_DB=chatwoot
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-chatwoot_dev}
+      - POSTGRES_HOST_AUTH_METHOD=trust
 
   redis:
     image: redis:alpine

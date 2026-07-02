@@ -588,6 +588,11 @@ Rails.application.routes.draw do
         end
 
         resources :csat_survey, only: [:show, :update]
+
+        # Sprint 2: wecom-ai 调 Chatwoot 查 handoff 状态
+        namespace :wecom do
+          resource :handoff_status, only: [:show]
+        end
       end
     end
   end
@@ -623,6 +628,7 @@ Rails.application.routes.draw do
   post 'webhooks/sms/:phone_number', to: 'webhooks/sms#process_payload'
   get 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#verify'
   post 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#process_payload'
+  post 'webhooks/wecom/:open_kfid', to: 'webhooks/wecom#process_payload'
   get 'webhooks/instagram', to: 'webhooks/instagram#verify'
   post 'webhooks/instagram', to: 'webhooks/instagram#events'
   post 'webhooks/tiktok', to: 'webhooks/tiktok#events'

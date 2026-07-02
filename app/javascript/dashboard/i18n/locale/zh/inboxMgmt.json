@@ -439,6 +439,39 @@
           "ERROR_MESSAGE": "我们无法保存 Telegram 通道"
         }
       },
+      "WECOM_CHANNEL": {
+        "TITLE": "企业微信 (WeCom) 频道",
+        "DESC": "对接企业微信 AI 后端 (wecom-ai) 接收/回复客户消息。",
+        "CHANNEL_NAME": {
+          "LABEL": "频道名称",
+          "SUBTITLE": "便于在后台识别此 Inbox 的友好名称。",
+          "PLACEHOLDER": "WeCom Inbox"
+        },
+        "CORP_ID": {
+          "LABEL": "企业 Corp ID",
+          "SUBTITLE": "企业微信管理后台的企业 ID (CorpID)。",
+          "PLACEHOLDER": "ww1234567890abcdef"
+        },
+        "OPEN_KFID": {
+          "LABEL": "客服账号 ID (Open KFID)",
+          "SUBTITLE": "此 Inbox 绑定的企业微信客服账号 ID。",
+          "PLACEHOLDER": "wkAbCdEf123456"
+        },
+        "AI_SERVICE_URL": {
+          "LABEL": "AI 后端服务 URL",
+          "SUBTITLE": "你的 wecom-ai 服务地址。Chatwoot 会把 agent 的消息 POST 到这里。",
+          "PLACEHOLDER": "http://your-wecom-ai-host:8000"
+        },
+        "AI_SECRET": {
+          "LABEL": "AI 后端 HMAC 密钥",
+          "SUBTITLE": "两端共享的 HMAC-SHA256 密钥 (header X-WecomAI-Signature)。",
+          "PLACEHOLDER": "long-random-secret"
+        },
+        "SUBMIT_BUTTON": "创建 WeCom 频道",
+        "API": {
+          "ERROR_MESSAGE": "我们无法保存 WeCom 通道"
+        }
+      },
       "AUTH": {
         "TITLE": "选择一个通道",
         "DESC": "Chatwoot支持实时聊天小部件、Facebook Messenger、Twitter个人资料、WhatsApp、电子邮件等作为通道。如果您想构建自定义通道，可以使用API通道创建。要开始，请从下面的通道中选择一个。",
@@ -480,6 +513,10 @@
           "INSTAGRAM": {
             "TITLE": "Instagram",
             "DESCRIPTION": "连接您的 instagram 帐户"
+          },
+          "WECOM": {
+            "TITLE": "企业微信 (WeCom)",
+            "DESCRIPTION": "对接企业微信 AI 后端 (实时消息 + AI 自动回复 + 人工接管)"
           },
           "TIKTOK": {
             "TITLE": "TikTok",
@@ -1129,6 +1166,7 @@
       "SMS": "短信",
       "EMAIL": "电子邮件",
       "TELEGRAM": "Telegram",
+      "WECOM": "企业微信 (WeCom)",
       "LINE": "Line",
       "API": "API 频道",
       "INSTAGRAM": "Instagram",

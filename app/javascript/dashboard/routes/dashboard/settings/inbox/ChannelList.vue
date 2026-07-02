@@ -77,6 +77,12 @@ const channelList = computed(() => {
       description: t('INBOX_MGMT.ADD.AUTH.CHANNEL.INSTAGRAM.DESCRIPTION'),
       icon: 'i-woot-instagram',
     },
+    {
+      key: 'wecom',
+      title: t('INBOX_MGMT.ADD.AUTH.CHANNEL.WECOM.TITLE'),
+      description: t('INBOX_MGMT.ADD.AUTH.CHANNEL.WECOM.DESCRIPTION'),
+      icon: 'i-woot-wecom',
+    },
   ];
 
   if (hasTiktokConfigured.value) {
