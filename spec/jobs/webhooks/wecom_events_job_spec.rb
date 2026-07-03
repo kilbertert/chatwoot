@@ -111,5 +111,53 @@ RSpec.describe Webhooks::WecomEventsJob do
         }
       )
     end
+
+    it 'survives a non-LockAcquisitionError raised inside the lock block' do
+      # Errors other than LockAcquisitionError are re-raised by MutexApplicationJob
+      # and must not silently fall through to process_without_lock.
+      allow(lock_manager).to receive(:lock).and_return(true)
+      allow(lock_manager).to receive(:unlock).and_return(true)
+      allow(service).to receive(:perform).and_raise(StandardError, 'boom')
+
+      expect { perform_job }.to raise_error(StandardError, 'boom')
+    end
+  end
+
+  describe 'process_without_lock argument unwrap' do
+    let(:service) { instance_double(Wecom::IncomingMessageService) }
+    let(:job_args_hash) do
+      {
+        'params' => params,
+        'open_kfid' => open_kfid,
+        'post_body' => post_body,
+        'signature' => signature,
+        'trigger_bot_handoff' => false
+      }
+    end
+
+    before do
+      allow(Wecom::IncomingMessageService).to receive(:new).with(inbox: inbox, params: kind_of(Hash)).and_return(service)
+      allow(service).to receive(:perform)
+    end
+
+    it 'matches the ActiveJob retry_on argument shape (splat of single hash)' do
+      # `MutexApplicationJob#retry_on_lock_conflict` invokes on exhaustion:
+      #   job.public_send(on_exhaustion, *job.arguments)
+      # For a job enqueued via `perform_later(**kwargs)`, `job.arguments` is a
+      # 1-element array whose only element is the kwargs hash. Splatting that
+      # gives a single positional hash — exactly the shape that must reach
+      # process_without_lock's `args.first` branch.
+      job = described_class.new
+      expect(service).to receive(:perform)
+      expect(Rails.logger).to receive(:warn).with(/Processing without lock after lock retry exhaustion/)
+
+      job.process_without_lock(job_args_hash)
+    end
+
+    it 'survives a fully empty argument set without raising' do
+      job = described_class.new
+
+      expect { job.process_without_lock({}) }.not_to raise_error
+    end
   end
 end
