@@ -1,15 +1,18 @@
 # 处理 wecom-ai 推送的入站事件
 # 鉴权: HMAC-SHA256(post_body, channel.wecom_ai_secret) 头取自 X-WecomAI-Signature
-class Webhooks::WecomEventsJob < ApplicationJob
+class Webhooks::WecomEventsJob < MutexApplicationJob
   queue_as :low
   retry_on ActiveRecord::Deadlocked, wait: 3.seconds, attempts: 3
+  retry_on_lock_conflict wait: ->(executions) { executions.seconds }, attempts: 3, on_exhaustion: :process_without_lock
 
   def perform(params: {}, open_kfid: '', post_body: '', signature: '', trigger_bot_handoff: false)
-    @params = params.with_indifferent_access
-    @open_kfid = open_kfid
-    @post_body = post_body
-    @signature = signature
-    @trigger_bot_handoff = trigger_bot_handoff
+    assign_job_attributes(
+      params: params,
+      open_kfid: open_kfid,
+      post_body: post_body,
+      signature: signature,
+      trigger_bot_handoff: trigger_bot_handoff
+    )
 
     return unless valid_channel?
     return unless valid_post_body?
@@ -17,8 +20,19 @@ class Webhooks::WecomEventsJob < ApplicationJob
     if @trigger_bot_handoff
       handle_bot_handoff!
     else
-      Wecom::IncomingMessageService.new(inbox: @channel.inbox, params: @params.with_indifferent_access).perform
+      process_message_with_lock
     end
+  end
+
+  def process_without_lock(*args, **kwargs)
+    assign_job_attributes_from(kwargs.presence || args.first || {})
+
+    return unless valid_channel?
+    return unless valid_post_body?
+    return handle_bot_handoff! if @trigger_bot_handoff
+
+    Rails.logger.warn("[#{self.class.name}] Processing without lock after lock retry exhaustion")
+    process_message
   end
 
   def handle_bot_handoff!
@@ -33,7 +47,39 @@ class Webhooks::WecomEventsJob < ApplicationJob
     conversation.bot_handoff!  # 触发 CONVERSATION_BOT_HANDOFF dispatcher 事件
   end
 
+  def process_message_with_lock
+    return process_message if @params[:external_userid].blank?
+
+    with_lock(wecom_message_mutex_key, 5.seconds) do
+      process_message
+    end
+  end
+
+  def process_message
+    Wecom::IncomingMessageService.new(inbox: @channel.inbox, params: @params.with_indifferent_access).perform
+  end
+
+  def wecom_message_mutex_key
+    format(
+      ::Redis::Alfred::WECOM_MESSAGE_MUTEX,
+      inbox_id: @channel.inbox.id,
+      external_userid: @params[:external_userid]
+    )
+  end
+
   private
+
+  def assign_job_attributes_from(attributes)
+    assign_job_attributes(**attributes.symbolize_keys.slice(:params, :open_kfid, :post_body, :signature, :trigger_bot_handoff))
+  end
+
+  def assign_job_attributes(params: {}, open_kfid: '', post_body: '', signature: '', trigger_bot_handoff: false)
+    @params = params.with_indifferent_access
+    @open_kfid = open_kfid
+    @post_body = post_body
+    @signature = signature
+    @trigger_bot_handoff = trigger_bot_handoff
+  end
 
   def valid_post_body?
     return false if @post_body.blank? || @signature.blank?

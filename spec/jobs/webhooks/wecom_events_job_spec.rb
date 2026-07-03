@@ -7,7 +7,14 @@ RSpec.describe Webhooks::WecomEventsJob do
   let!(:wecom_channel) { create(:channel_wecom, account: account, wecom_ai_secret: 'spec_test_secret') }
   let(:inbox) { wecom_channel.inbox }
   let(:open_kfid) { wecom_channel.open_kfid }
-  let(:post_body) { '{"open_kfid":"wk_test","external_userid":"wm_test","contact":{"name":"Test"},"message":{"msgid":"spec_001","msgtype":"text","text":{"content":"hi"}}}' }
+  let(:post_body) do
+    {
+      open_kfid: 'wk_test',
+      external_userid: 'wm_test',
+      contact: { name: 'Test' },
+      message: { msgid: 'spec_001', msgtype: 'text', text: { content: 'hi' } }
+    }.to_json
+  end
   let(:signature) { OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('SHA256'), wecom_channel.wecom_ai_secret, post_body) }
   let(:params) { JSON.parse(post_body) }
 
@@ -70,11 +77,39 @@ RSpec.describe Webhooks::WecomEventsJob do
   end
 
   context 'when trigger_bot_handoff=false (normal message)' do
-    it 'delegates to Wecom::IncomingMessageService' do
-      service = double('Wecom::IncomingMessageService')
+    let(:service) { instance_double(Wecom::IncomingMessageService) }
+    let(:lock_manager) { instance_double(Redis::LockManager) }
+    let(:lock_key) { format(Redis::Alfred::WECOM_MESSAGE_MUTEX, inbox_id: inbox.id, external_userid: 'wm_test') }
+
+    before do
       allow(Wecom::IncomingMessageService).to receive(:new).with(inbox: inbox, params: kind_of(Hash)).and_return(service)
+      allow(service).to receive(:perform)
+      allow(Redis::LockManager).to receive(:new).and_return(lock_manager)
+      allow(lock_manager).to receive(:lock).and_return(true)
+      allow(lock_manager).to receive(:unlock).and_return(true)
+    end
+
+    it 'delegates to Wecom::IncomingMessageService inside the WeCom mutex' do
+      expect(lock_manager).to receive(:lock).with(lock_key, 5.seconds).and_return(true)
+      expect(lock_manager).to receive(:unlock).with(lock_key).and_return(true)
       expect(service).to receive(:perform)
+
       perform_job
+    end
+
+    it 'accepts positional job arguments when processing without the lock' do
+      expect(Rails.logger).to receive(:warn).with('[Webhooks::WecomEventsJob] Processing without lock after lock retry exhaustion')
+      expect(service).to receive(:perform)
+
+      described_class.new.process_without_lock(
+        {
+          'params' => params,
+          'open_kfid' => open_kfid,
+          'post_body' => post_body,
+          'signature' => signature,
+          'trigger_bot_handoff' => false
+        }
+      )
     end
   end
 end
